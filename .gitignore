@@ -1,5 +1,7 @@
 *.o
 dump1090
+dump1090_afl
+dump1090_pwn
 testfiles/*.bin
 misc
 frames.js
@@ -17,3 +19,4 @@ oneoff/dsp_error_measurement
 oneoff/decode_comm_b
 starch-benchmark
 wisdom.local
+out/

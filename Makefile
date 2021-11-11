@@ -14,5 +14,8 @@ dump1090: dump1090.o anet.o
 dump1090_afl: dump1090.c anet.c
 	afl-gcc-fast -g -o dump1090_afl dump1090.c anet.c $(LDFLAGS) $(LDLIBS) -DAFL
 
+dump1090_pwn: dump1090.c anet.c
+	$(cc) -g -o dump1090_pwn dump1090.c anet.c $(LDFLAGS) $(LDLIBS) -DAFL
+
 clean:
-	rm -f *.o dump1090 dump1090_afl
+	rm -f *.o dump1090 dump1090_afl dump1090_pwn

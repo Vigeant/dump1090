@@ -61,6 +61,7 @@
 #define MODES_FULL_LEN (MODES_PREAMBLE_US+MODES_LONG_MSG_BITS)
 #define MODES_LONG_MSG_BYTES (112/8)
 #define MODES_SHORT_MSG_BYTES (56/8)
+#define MODES_ELM_MSG_BYTES (32)
 
 #define MODES_ICAO_CACHE_LEN 1024 /* Power of two required. */
 #define MODES_ICAO_CACHE_TTL 60   /* Time to live of cached addresses. */
@@ -227,6 +228,9 @@ struct modesMessage {
     int dr;                     /* Request extraction of downlink request. */
     int um;                     /* Request extraction of downlink request. */
     int identity;               /* 13 bits identity (Squawk). */
+
+    /* DF24 this should probably live on the .bss... */
+    unsigned char elm[20];
 
     /* Fields used by multiple message types. */
     int altitude, unit;
@@ -675,7 +679,7 @@ uint32_t modesChecksum(unsigned char *msg, int bits) {
 int modesMessageLenByType(int type) {
     if (type == 16 || type == 17 ||
         type == 19 || type == 20 ||
-        type == 21)
+        type == 21 || type == 24)
         return MODES_LONG_MSG_BITS;
     else
         return MODES_SHORT_MSG_BITS;
@@ -1130,7 +1134,12 @@ void decodeModesMessage(struct modesMessage *mm, unsigned char *msg) {
                                               (msg[6] >> 3));
             }
         }
+    } else if (mm->msgtype == 24) {
+	/* copy 6 Byte msg chunk at index in mm-elm struct */
+	memcpy(&(mm->elm[msg[4]*6]),&msg[5],6); 	
     }
+
+    
     mm->phase_corrected = 0; /* Set to 1 by the caller if needed. */
 }
 
@@ -1241,6 +1250,13 @@ void displayModesMessage(struct modesMessage *mm) {
             printf("    Unrecognized ME type: %d subtype: %d\n", 
                 mm->metype, mm->mesub);
         }
+    } else if (mm->msgtype == 24) {
+        if (Modes.check_crc) {
+            printf("DF %d with good CRC received "
+		"message: %s\n",
+                mm->msgtype, mm->elm);
+        }
+
     } else {
         if (Modes.check_crc)
             printf("DF %d with good CRC received "
@@ -2513,7 +2529,7 @@ int main(int argc, char **argv) {
 	/* Initialization */
 	modesInit();
 
-	//strncpy(c.buf,"*8f4d2023587f345e35837e2218b2;",MODES_CLIENT_BUF_SIZE);
+	//no overflow on the read
 	if (fgets(c.buf, MODES_CLIENT_BUF_SIZE+1, stdin) == NULL) return -1;
 	c.buflen = strlen(c.buf);
 	decodeHexMessage(&c);
