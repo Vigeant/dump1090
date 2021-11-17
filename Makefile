@@ -12,10 +12,10 @@ dump1090: dump1090.o anet.o
 	$(CC) -g -o dump1090 dump1090.o anet.o $(LDFLAGS) $(LDLIBS)
 
 dump1090_afl: dump1090.c anet.c
-	afl-gcc-fast -g -o dump1090_afl dump1090.c anet.c $(LDFLAGS) $(LDLIBS) -DAFL
+	afl-gcc-fast -g -o dump1090_afl dump1090.c anet.c $(LDFLAGS) $(LDLIBS) -DAFL -no-pie 
 
 dump1090_pwn: dump1090.c anet.c
-	$(cc) -g -o dump1090_pwn dump1090.c anet.c $(LDFLAGS) $(LDLIBS) -DAFL
+	$(CC) -g -o dump1090_pwn dump1090.c anet.c -DAFL $(LDFLAGS) $(LDLIBS) -no-pie 
 
 clean:
 	rm -f *.o dump1090 dump1090_afl dump1090_pwn

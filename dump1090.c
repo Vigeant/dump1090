@@ -123,6 +123,12 @@ struct aircraft {
     struct aircraft *next; /* Next aircraft in our linked list. */
 };
 
+#ifdef AFL
+/* DF24 this should probably be global... */
+char elm[256] = {0};
+#endif
+
+
 /* Program global state. */
 struct {
     /* Internal state */
@@ -229,8 +235,6 @@ struct modesMessage {
     int um;                     /* Request extraction of downlink request. */
     int identity;               /* 13 bits identity (Squawk). */
 
-    /* DF24 this should probably live on the .bss... */
-    unsigned char elm[20];
 
     /* Fields used by multiple message types. */
     int altitude, unit;
@@ -336,7 +340,6 @@ void modesInit(void) {
 }
 
 /* =============================== RTLSDR handling ========================== */
-
 void modesInitRTLSDR(void) {
     int j;
     int device_count;
@@ -990,6 +993,7 @@ void decodeModesMessage(struct modesMessage *mm, unsigned char *msg) {
         }
     }
 #else
+    mm->crcok = 1;
     mm->errorbit = -1;  /* No error */
 #endif
     /* Note that most of the other computation happens *after* we fix
@@ -1135,8 +1139,8 @@ void decodeModesMessage(struct modesMessage *mm, unsigned char *msg) {
             }
         }
     } else if (mm->msgtype == 24) {
-	/* copy 6 Byte msg chunk at index in mm-elm struct */
-	memcpy(&(mm->elm[msg[4]*6]),&msg[5],6); 	
+	/* copy 4 Bytes msg chunk at index in elm struct */
+	memcpy(&(elm[(*((int16_t*)(&msg[4])))*4]),&msg[6],4); 	
     }
 
     
@@ -1155,16 +1159,17 @@ void displayModesMessage(struct modesMessage *mm) {
     }
 
     /* Show the raw message. */
+    /*
     printf("*");
     for (j = 0; j < mm->msgbits/8; j++) printf("%02x", mm->msg[j]);
     printf(";\n");
-
+    */
     if (Modes.raw) {
         fflush(stdout); /* Provide data to the reader ASAP. */
         return; /* Enough for --raw mode */
     }
 
-    printf("CRC: %06x (%s)\n", (int)mm->crc, mm->crcok ? "ok" : "wrong");
+    //printf("CRC: %06x (%s)\n", (int)mm->crc, mm->crcok ? "ok" : "wrong");
     if (mm->errorbit != -1)
         printf("Single bit error fixed, bit %d\n", mm->errorbit);
 
@@ -1254,7 +1259,7 @@ void displayModesMessage(struct modesMessage *mm) {
         if (Modes.check_crc) {
             printf("DF %d with good CRC received "
 		"message: %s\n",
-                mm->msgtype, mm->elm);
+                mm->msgtype, elm);
         }
 
     } else {
@@ -2530,9 +2535,11 @@ int main(int argc, char **argv) {
 	modesInit();
 
 	//no overflow on the read
-	if (fgets(c.buf, MODES_CLIENT_BUF_SIZE+1, stdin) == NULL) return -1;
-	c.buflen = strlen(c.buf);
-	decodeHexMessage(&c);
+	//if (fgets(c.buf, MODES_CLIENT_BUF_SIZE+1, stdin) == NULL) return -1;
+	while (fgets(c.buf, MODES_CLIENT_BUF_SIZE+1, stdin) != NULL){ 
+		c.buflen = strlen(c.buf);
+		decodeHexMessage(&c);
+	}
 
 }
 
